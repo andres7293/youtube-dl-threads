@@ -1,3 +1,3 @@
-1. Ejecutar un comando desde python
-2. Leer el fichero donde estan las url y contar las lineas que tiene para lanzar los hilos que correspondan
-3. Lanzar los hilos
+1. Lanzar el script desde la consola.(Usar argparse)
+2. Proveer de un mecanismo para lanzar como maximo X hilos y cuando
+se termine un hilo lanzar otro, para seguir descargando hasta final de urls

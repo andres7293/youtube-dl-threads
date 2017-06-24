@@ -5,70 +5,89 @@ python script which use youtube-dl where each download runs on a thread
 import os
 import sys
 import argparse
+import timeit
 from threading import Thread
 
 class youtube_dl_scheduler:
 
-    def __init__(self,url_list):
+    def __init__(self,number_of_threads,url_list):
         self.url_list=url_list
-        self.thread_list = []
+        self.number_of_threads = number_of_threads
+        #pointer to keep trace the next download
         self.counter = 0
+        #create thread list object
+        self.thread_list = []
         self.url_list_len = len(url_list)
-        print("DEBUG: url list len = "+str(self.url_list_len))
+        print("Number of downloads = "+str(self.url_list_len))
+        print("Number of threads   = "+str(self.number_of_threads))
 
-    def youtube_dl(self,url):
-        os.system('youtube-dl '+url)
+    def _youtube_dl(self,url):
+        #call system youtube-dl
+        os.system('youtube-dl '+url +'> /dev/null 2>&1')
 
-    def create_thread_list(self,numbers_of_threads):
-        for i in range(numbers_of_threads):
-            self.thread_list.append(Thread(target=self.youtube_dl, args=(self.url_list[i],)))
+    def _create_thread_list(self):
+        #create thread list, associate it with youtube_dl and assign url to them
+        for i in range(self.number_of_threads):
+            self.thread_list.append(Thread(target=self._youtube_dl, args=(self.url_list[i],)))
 
-        #increment counter to number of thread_list
-        self.counter = numbers_of_threads
+    def _start_threads(self):
+            for i in range(self.number_of_threads):
+                self.thread_list[i].start()
+            #set counter to point where, not downloaded url
+            self.counter = self.number_of_threads
 
-    def scheduler_loop(self):
-        while (self.counter < self.url_list_len):
-            #iterate over thread list checking when a thread die
-            for i in range(len(self.thread_list)):
-                if(not self.thread_list[i].isAlive()):
-                    print('DEBUG: Thread '+str(i)+ ' has died')
-                    print('DEBUG: Counter = '+str(self.counter))
-                    #thread died
-                    #add other thread
-                    self.thread_list[i]=Thread(target=self.youtube_dl, args=(self.url_list[self.counter],))
-                    #start thread
-                    self.thread_list[i].start()
-                    #check if
-                    if(self.counter < self.url_list_len):
-                        self.counter = self.counter + 1
-                    else:
-                        #no more downloads
-                        #set counter to end of url list
-                        self.counter = self.url_list_len -1
-                        break
-        print("All download has finished")
-        print(str(len(self.thread_list))+' Threads used')
-        print(str(len(self.url_list))+' videos downloaded')
+    def _download_loop(self):
+        #iterate over thread list checking when a thread die
+        for i in range(len(self.thread_list)):
+            #check if thread has died
+            if(not self.thread_list[i].isAlive()):
+                #thread died
+                print('DEBUG: Thread '+str(i)+ ' has died')
+                print('DEBUG: Counter = '+str(self.counter))
+                #create other thread on the same index of died thread
+                self.thread_list[i]=Thread(target=self._youtube_dl, args=(self.url_list[self.counter],))
+                #start thread
+                self.thread_list[i].start()
+                #check if end of url list
+                if(self.counter < self.url_list_len - 1):
+                    #url list have more items
+                    #increment counter
+                    self.counter = self.counter + 1
+                    return False
+                else:
+                    #no more downloads
+                    return True
 
-    def start_threads(self,number_of_threads):
-        for i in range(number_of_threads):
-            self.thread_list[i].start()
+    def start(self):
+        #measure download time
+        start = timeit.timeit()
+        finished = False
+        self._create_thread_list()
+        self._start_threads()
+        #scheduler loop
+        try :
+            while (not finished):
+                finished=self._download_loop()
 
+            print("All download has finished")
+            end = timeit.timeit()
+            print("Download time = "+ str(end-start)+' secs\n\r')
+        except KeyboardInterrupt:
+            print("EXIT")
+            sys.exit()
 
-def getNumberLines_FromFile(path):
-    #gets the numbers of lines that file have
-    stream = open(path,mode='r')
-    counter = 0
-    #reading loop
-    while True:
-        line = stream.readline()
-        if line:
-            #line not empty
-            counter+=1
-        else:
-            break
-    stream.close()
-    return counter
+def main(pathFile,url_list,number_of_threads,file):
+
+    if file:
+        #get url from file
+        url_list=getUrl_List_FromFile(pathFile)
+        yt_sch = youtube_dl_scheduler(number_of_threads,url_list)
+        yt_sch.start()
+    else:
+        #url provided by cli
+        #create scheduler class
+        yt_sch = youtube_dl_scheduler(number_of_threads,url_list)
+        yt_sch.start()
 
 def getUrl_List_FromFile(path):
     # assing each url to a list
@@ -86,25 +105,6 @@ def getUrl_List_FromFile(path):
             break
     stream.close()
     return url_list
-
-def main(pathFile,url_list,number_of_threads,file):
-
-    if file:
-        #get url from file
-        Numberlines = getNumberLines_FromFile(pathFile)
-        url_list=getUrl_List_FromFile(pathFile)
-        yt_sch = youtube_dl_scheduler(url_list)
-        #create scheduler class
-        yt_sch.create_thread_list(number_of_threads)
-        yt_sch.start_threads(number_of_threads)
-        yt_sch.scheduler_loop()
-    else:
-        #calculate numbers of url in list
-        #create scheduler class
-        yt_sch = youtube_dl_scheduler(url_list)
-        yt_sch.create_thread_list(number_of_threads)
-        yt_sch.start_threads(number_of_threads)
-        yt_sch.scheduler_loop()
 
 if __name__ == "__main__":
     #python runs from command line

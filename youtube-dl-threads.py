@@ -23,7 +23,7 @@ class youtube_dl_scheduler:
 
     def _youtube_dl(self,url):
         #call system youtube-dl
-        os.system('youtube-dl '+url +'> /dev/null 2>&1')
+        os.system('youtube-dl '+url)
 
     def _create_thread_list(self):
         #create thread list, associate it with youtube_dl and assign url to them

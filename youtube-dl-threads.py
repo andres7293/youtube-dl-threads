@@ -10,8 +10,7 @@ class youtube_dl_thread:
         self.__init_thread_pool()
 
     def __youtube_dl(self, url):
-        #os.system('youtube-dl -q ' + url)
-        print url
+        os.system('youtube-dl -q ' + url)
 
     def download_by_list(self, url_list):
         for url in url_list:

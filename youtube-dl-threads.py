@@ -10,14 +10,13 @@ class youtube_dl_thread:
         self.__init_thread_pool()
 
     def __youtube_dl(self, url):
-        os.system('youtube-dl -q ' + url)
+        #os.system('youtube-dl -q ' + url)
+        print url
 
     def download_by_list(self, url_list):
         for url in url_list:
-            if not self.add_dl_to_pool(url):
-                #no more free threads, wait until available
-                while self.get_number_of_free_threads() == 0:
-                    time.sleep(1)
+            while not self.add_dl_to_pool(url):
+                time.sleep(1)
         #wait until all dl finish
         while self.get_number_of_occupied_threads() > 0:
             time.sleep(1)
@@ -27,10 +26,9 @@ class youtube_dl_thread:
             url = file.readline()
             while url:
                 if not self.add_dl_to_pool(url):
-                    #no more free threads, wait until available
-                    while self.get_number_of_free_threads() == 0:
-                        time.sleep(1)
-                url = file.readline()
+                    time.sleep(1)
+                else:
+                    url = file.readline()
         #wait pending dl to finish
         while self.get_number_of_occupied_threads() > 0:
             time.sleep(1)
